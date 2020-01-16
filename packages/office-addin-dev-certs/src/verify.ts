@@ -36,6 +36,33 @@ export function isCaCertificateInstalled(): boolean {
     return false;
 }
 
+// Method to return installed CA devleoper certificate irrespective of whether its expired or not
+function getCACertPresentInstoreCommand(): string {
+    switch (process.platform) {
+       case "win32":
+          return `powershell -command "dir cert:\\CurrentUser\\Root | Where-Object Issuer -like '*CN=${defaults.certificateName}*'`;
+       case "darwin": // macOS
+          return `security find-certificate -c "${defaults.certificateName}" -p`;
+       default:
+          throw new Error(`Platform not supported: ${process.platform}`);
+    }
+ }
+
+ export function isCaCertificatePresentInStore(): boolean {
+    const command = getCACertPresentInstoreCommand();
+
+    try {
+        const output = execSync(command, {stdio : "pipe" }).toString();
+        if (output.length !== 0) {
+            return true; // if the list has any entry, there's a CA certificate installed
+        }
+    } catch (error) {
+        // fall through
+    }
+
+    return false;
+ }
+
 function validateCertificateAndKey(certificatePath: string, keyPath: string) {
     let certificate: string = "";
     let key: string = "";

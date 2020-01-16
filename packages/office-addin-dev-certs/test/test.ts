@@ -167,7 +167,7 @@ describe("office-addin-dev-certs", function() {
         it("execSync fail case", async function() {
             const error = {stderr : "test error"};
             sandbox.stub(childProcess, "execSync").throws(error);
-            sandbox.stub(verify, "isCaCertificateInstalled").returns(true);
+            sandbox.stub(verify, "isCaCertificatePresentInStore").returns(true);
             try {
                 await uninstall.uninstallCaCertificate();
                 assert.strictEqual(0, 1);
@@ -178,7 +178,7 @@ describe("office-addin-dev-certs", function() {
         it("uninstall success case", async function() {
             const execSync = sandbox.fake();
             sandbox.stub(childProcess, "execSync").callsFake(execSync);
-            sandbox.stub(verify, "isCaCertificateInstalled").returns(true);
+            sandbox.stub(verify, "isCaCertificatePresentInStore").returns(true);
             try {
                 await uninstall.uninstallCaCertificate();
                 assert.strictEqual(execSync.callCount, 1);
@@ -190,21 +190,21 @@ describe("office-addin-dev-certs", function() {
         if (process.platform === "win32") {
             const script = path.resolve(__dirname, "..\\scripts\\uninstall.ps1");
             it("with --machine option", async function() {
-                const isCaCertificateInstalled = sandbox.fake.returns(true);
+                const isCaCertificatePresentInStore = sandbox.fake.returns(true);
                 const execSync = sandbox.fake();
                 const machine = true;
                 sandbox.stub(childProcess, "execSync").callsFake(execSync);
-                sandbox.stub(verify, "isCaCertificateInstalled").callsFake(isCaCertificateInstalled);
+                sandbox.stub(verify, "isCaCertificatePresentInStore").callsFake(isCaCertificatePresentInStore);
                 await uninstall.uninstallCaCertificate(machine);
                 assert.strictEqual(execSync.callCount, 1);
                 assert.strictEqual(execSync.calledWith(`powershell -ExecutionPolicy Bypass -File "${script}" LocalMachine "${defaults.certificateName}"`), true);
             });
             it("without --machine option", async function() {
-                const isCaCertificateInstalled = sandbox.fake.returns(true);
+                const isCaCertificatePresentInStore = sandbox.fake.returns(true);
                 const execSync = sandbox.fake();
                 const machine = false;
                 sandbox.stub(childProcess, "execSync").callsFake(execSync);
-                sandbox.stub(verify, "isCaCertificateInstalled").callsFake(isCaCertificateInstalled);
+                sandbox.stub(verify, "isCaCertificatePresentInStore").callsFake(isCaCertificatePresentInStore);
                 await uninstall.uninstallCaCertificate(machine);
                 assert.strictEqual(execSync.callCount, 1);
                 assert.strictEqual(execSync.calledWith(`powershell -ExecutionPolicy Bypass -File "${script}" CurrentUser "${defaults.certificateName}"`), true);
@@ -249,6 +249,39 @@ describe("office-addin-dev-certs", function() {
             sandbox.stub(childProcess, "execSync").callsFake(execSync);
             try {
                 const ret = await verify.isCaCertificateInstalled();
+                assert.strictEqual(execSync.callCount, 1);
+                assert.strictEqual(ret, true);
+            } catch (err) {
+                // not expecting any exception
+                assert.strictEqual(0, 1);
+            }
+        });
+        it("execSync fail case for CA cert present in store", async function() {
+            const error = {stderr : "test error"};
+            sandbox.stub(childProcess, "execSync").throws(error);
+            try {
+                await verify.isCaCertificatePresentInStore();
+            } catch (err) {
+                assert.strictEqual(err.message, "test error");
+            }
+        });
+        it("No certificates not found in trusted store case", async function() {
+            const  execSync = sandbox.fake.returns("");
+            sandbox.stub(childProcess, "execSync").callsFake(execSync);
+            try {
+                const ret = await verify.isCaCertificatePresentInStore();
+                assert.strictEqual(execSync.callCount, 1);
+                assert.strictEqual(ret, false);
+            } catch (err) {
+                // not expecting any exception
+                assert.strictEqual(0, 1);
+            }
+        });
+        it("CA certificate is found in trusted store case", async function() {
+            const execSync = sandbox.fake.returns("Certificate details");
+            sandbox.stub(childProcess, "execSync").callsFake(execSync);
+            try {
+                const ret = await verify.isCaCertificatePresentInStore();
                 assert.strictEqual(execSync.callCount, 1);
                 assert.strictEqual(ret, true);
             } catch (err) {

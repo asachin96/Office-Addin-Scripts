@@ -5,7 +5,7 @@ import { execSync } from "child_process";
 import * as fsExtra from "fs-extra";
 import * as path from "path";
 import * as defaults from "./defaults";
-import { isCaCertificateInstalled } from "./verify";
+import { isCaCertificatePresentInStore } from "./verify";
 
 function getUninstallCommand(machine: boolean = false): string {
    switch (process.platform) {
@@ -33,7 +33,7 @@ export function deleteCertificateFiles(certificateDirectory: string = defaults.c
 }
 
 export async function uninstallCaCertificate(machine: boolean = false, verbose: boolean = true) {
-   if (isCaCertificateInstalled()) {
+   if (isCaCertificatePresentInStore()) {
       const command = getUninstallCommand(machine);
 
       try {
